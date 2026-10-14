@@ -1,0 +1,632 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>櫃檯點數管理</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="config.js"></script>
+<style>
+:root{
+  --bg:#f4f1ea; --card:#fff; --ink:#1f1d1a; --muted:#6f6a61; --line:#e2dccf;
+  --accent:#7a2e2e; --accent-ink:#fff; --ok:#2f6b3f; --bad:#b3261e; --gold:#a8822c; --silver:#7d8590;
+  --radius:14px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans TC",system-ui,sans-serif;font-size:16px}
+button,input,select,textarea{font:inherit;color:inherit}
+.wrap{max-width:760px;margin:0 auto;padding:0 16px 96px}
+header{position:sticky;top:0;z-index:5;background:var(--ink);color:#f4f1ea}
+header .wrap{display:flex;align-items:center;gap:12px;padding-top:12px;padding-bottom:12px}
+header h1{font-size:17px;margin:0;font-weight:700;letter-spacing:.04em;flex:1}
+header .who{font-size:13px;opacity:.8}
+.tabs{display:flex;gap:4px;margin:16px 0}
+.tab{flex:1;padding:10px;border:1px solid var(--line);background:var(--card);border-radius:10px;cursor:pointer}
+.tab.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin:12px 0}
+.row{display:flex;gap:8px;align-items:center}
+.grow{flex:1}
+input,select,textarea{width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;background:#fff;min-height:48px}
+textarea{min-height:64px}
+label{display:block;font-size:13px;color:var(--muted);margin:12px 0 4px}
+.btn{border:0;border-radius:10px;padding:12px 18px;min-height:48px;cursor:pointer;background:var(--line);font-weight:500;white-space:nowrap}
+.btn.pri{background:var(--accent);color:var(--accent-ink)}
+.btn.dark{background:var(--ink);color:#fff}
+.btn.ghost{background:transparent;border:1px solid var(--line)}
+.btn.sm{min-height:36px;padding:6px 12px;font-size:14px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.block{width:100%}
+.hint{font-size:13px;color:var(--muted)}
+.err{color:var(--bad)}
+.hide{display:none!important}
+.result{display:flex;justify-content:space-between;align-items:center;padding:12px;border:1px solid var(--line);border-radius:10px;margin-top:8px;cursor:pointer;background:#fff}
+.result:hover{border-color:var(--ink)}
+.mname{font-size:22px;font-weight:700}
+.badge{display:inline-block;padding:2px 10px;border-radius:999px;font-size:13px;font-weight:700;background:var(--line);color:var(--ink);vertical-align:middle}
+.badge.t1{background:#e7e9ec;color:#4a5058}.badge.t2{background:#f3e7c7;color:#7a5a12}.badge.t3{background:#1f1d1a;color:#e9cf87}
+.bal{font-size:44px;font-weight:700;letter-spacing:-.02em;line-height:1.1;font-variant-numeric:tabular-nums}
+.meta{display:grid;grid-template-columns:auto 1fr;gap:4px 16px;font-size:14px;margin-top:8px}
+.meta dt{color:var(--muted)}.meta dd{margin:0}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:16px}
+.actions .wide{grid-column:span 2}
+.quick{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.item{display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--line)}
+.item .nm{flex:1}
+.item .pr{color:var(--muted);font-size:14px;font-variant-numeric:tabular-nums}
+.step{display:flex;align-items:center;gap:4px}
+.step button{width:40px;height:40px;border-radius:8px;border:1px solid var(--line);background:#fff;font-size:20px;cursor:pointer}
+.step span{min-width:28px;text-align:center;font-weight:700}
+.cat{font-size:13px;color:var(--muted);margin-top:12px;font-weight:700}
+.sum{display:flex;justify-content:space-between;font-size:18px;padding:12px 0;font-variant-numeric:tabular-nums}
+.sum b{font-size:22px}
+.tx{padding:10px 0;border-bottom:1px solid var(--line);font-size:14px}
+.tx .top{display:flex;justify-content:space-between;gap:8px}
+.tx .pts{font-weight:700;font-variant-numeric:tabular-nums}
+.pos{color:var(--ok)}.neg{color:var(--bad)}
+.tx.voided{opacity:.5}.tx.voided .pts{text-decoration:line-through}
+.modal-bg{position:fixed;inset:0;background:rgba(20,18,15,.5);z-index:20;display:flex;align-items:flex-end;justify-content:center}
+.modal{background:var(--bg);width:100%;max-width:640px;max-height:92vh;overflow:auto;border-radius:18px 18px 0 0;padding:20px 16px calc(20px + env(safe-area-inset-bottom))}
+@media(min-width:700px){.modal-bg{align-items:center}.modal{border-radius:18px}}
+.modal h2{margin:0 0 4px;font-size:20px}
+.modal .who{color:var(--muted);font-size:14px;margin-bottom:8px}
+.modal .foot{display:flex;gap:8px;margin-top:16px}
+.modal .foot .btn{flex:1}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 18px;border-radius:12px;z-index:30;max-width:90vw;box-shadow:0 8px 24px rgba(0,0,0,.2)}
+.toast.bad{background:var(--bad)}
+.tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+@media(min-width:600px){.tiles{grid-template-columns:repeat(4,1fr)}}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px}
+.tile .k{font-size:12px;color:var(--muted)}.tile .v{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
+table{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}
+th,td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:right}
+th:first-child,td:first-child{text-align:left}
+th{color:var(--muted);font-weight:500}
+.scroll{overflow-x:auto}
+.loading{opacity:.6;pointer-events:none}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <h1 id="shopName">櫃檯點數管理</h1>
+  <span class="who" id="who"></span>
+  <button class="btn sm ghost hide" id="logoutBtn" style="color:#f4f1ea;border-color:#555">登出</button>
+</div></header>
+
+<div class="wrap">
+  <!-- 登入 -->
+  <section id="loginView" class="card" style="margin-top:32px">
+    <h2 style="margin-top:0">員工登入</h2>
+    <label>帳號</label><input id="lgAcc" autocomplete="username" autocapitalize="off">
+    <label>PIN 碼</label><input id="lgPin" type="password" inputmode="numeric" autocomplete="current-password">
+    <p class="err" id="lgErr"></p>
+    <button class="btn pri block" id="lgBtn">登入</button>
+  </section>
+
+  <section id="appView" class="hide">
+    <div class="tabs" id="tabs">
+      <button class="tab on" data-tab="counter">櫃檯</button>
+      <button class="tab mgr hide" data-tab="report">報表</button>
+    </div>
+
+    <!-- 櫃檯 -->
+    <div id="counterView">
+      <div class="card">
+        <div class="row">
+          <input id="q" class="grow" inputmode="numeric" placeholder="手機號碼，或末 3～4 碼" autocomplete="off">
+          <button class="btn dark" id="qBtn">查詢</button>
+        </div>
+        <div id="results"></div>
+        <div class="row" style="margin-top:12px;justify-content:space-between">
+          <span class="hint">價目表有更新時請按重新載入</span>
+          <div class="row">
+            <button class="btn sm ghost" id="reloadBtn">重新載入價目</button>
+            <button class="btn sm ghost" id="newBtn">＋ 新增會員</button>
+          </div>
+        </div>
+      </div>
+      <div id="memberCard"></div>
+    </div>
+
+    <!-- 報表 -->
+    <div id="reportView" class="hide">
+      <div class="card">
+        <div class="row">
+          <div class="grow"><label>起</label><input type="date" id="rFrom"></div>
+          <div class="grow"><label>迄</label><input type="date" id="rTo"></div>
+        </div>
+        <div class="quick">
+          <button class="btn sm ghost" data-range="today">今天</button>
+          <button class="btn sm ghost" data-range="yesterday">昨天</button>
+          <button class="btn sm ghost" data-range="month">本月</button>
+          <button class="btn sm ghost" data-range="lastmonth">上月</button>
+          <button class="btn sm dark" id="rBtn" style="margin-left:auto">查詢</button>
+        </div>
+      </div>
+      <div id="reportOut"></div>
+    </div>
+  </section>
+</div>
+
+<div id="modalRoot"></div>
+
+<script>
+(function(){
+'use strict';
+const CFG = window.APP_CONFIG || {};
+const $ = s => document.querySelector(s);
+const S = { token:null, staff:null, tiers:[], items:[], member:null };
+const fmt = n => Number(n||0).toLocaleString('zh-TW');
+const esc = s => String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmtPhone = p => p && p.length===10 ? p.slice(0,4)+'-'+p.slice(4,7)+'-'+p.slice(7) : (p||'');
+const tierIdx = name => Math.max(0, S.tiers.findIndex(t => t.name===name));
+const badge = name => { const i = tierIdx(name); return `<span class="badge t${Math.min(i,3)}">${esc(name)}</span>`; };
+const store = {
+  get(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } },
+  set(k,v){ try{ v==null ? localStorage.removeItem(k) : localStorage.setItem(k,v); }catch(e){} },
+};
+if (CFG.SHOP_NAME) { $('#shopName').textContent = CFG.SHOP_NAME + '｜櫃檯點數'; document.title = CFG.SHOP_NAME + ' 櫃檯'; }
+
+async function api(action, data){
+  const res = await fetch(CFG.API_URL, { method:'POST', body: JSON.stringify(Object.assign({ action, token:S.token }, data||{})) });
+  const j = await res.json();
+  if (!j.ok) {
+    if (/登入已過期/.test(j.error)) { logoutLocal(); }
+    throw new Error(j.error);
+  }
+  return j;
+}
+
+let toastTimer;
+function toast(msg, bad){
+  let t = $('.toast'); if (!t) { t = document.createElement('div'); document.body.appendChild(t); }
+  t.className = 'toast' + (bad ? ' bad' : ''); t.textContent = msg;
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.remove(), bad ? 5000 : 3000);
+}
+async function busy(el, fn){
+  el && el.classList.add('loading');
+  try { return await fn(); } catch(e){ toast(e.message, true); } finally { el && el.classList.remove('loading'); }
+}
+
+/* ---------- 登入 ---------- */
+async function doLogin(){
+  $('#lgErr').textContent = '';
+  try {
+    const r = await api('login', { account: $('#lgAcc').value.trim(), pin: $('#lgPin').value.trim() });
+    S.token = r.token; S.staff = r.staff;
+    store.set('pts_session', JSON.stringify({ token:r.token, staff:r.staff }));
+    store.set('pts_acc', r.staff.account);
+    await enterApp();
+  } catch(e){ $('#lgErr').textContent = e.message; }
+}
+function logoutLocal(){
+  S.token = null; S.staff = null; S.member = null;
+  store.set('pts_session', null);
+  $('#appView').classList.add('hide'); $('#loginView').classList.remove('hide');
+  $('#logoutBtn').classList.add('hide'); $('#who').textContent = '';
+  $('#lgPin').value = '';
+}
+async function enterApp(){
+  $('#loginView').classList.add('hide'); $('#appView').classList.remove('hide');
+  $('#logoutBtn').classList.remove('hide');
+  $('#who').textContent = S.staff.name + '（' + S.staff.role + '）';
+  document.querySelectorAll('.mgr').forEach(e => e.classList.toggle('hide', S.staff.role !== '店長'));
+  await loadCatalog();
+  $('#q').focus();
+}
+async function loadCatalog(){
+  const r = await api('catalog'); S.tiers = r.tiers; S.items = r.items; S.couponName = r.couponName; S.couponValue = r.couponValue;
+}
+$('#lgBtn').onclick = doLogin;
+$('#lgPin').addEventListener('keydown', e => { if (e.key==='Enter') doLogin(); });
+$('#logoutBtn').onclick = async () => { try { await api('logout'); } catch(e){} logoutLocal(); };
+$('#reloadBtn').onclick = () => busy($('#counterView'), async () => { await loadCatalog(); toast('價目表已更新'); if (S.member) renderMember(); });
+
+/* ---------- 分頁 ---------- */
+$('#tabs').onclick = e => {
+  const b = e.target.closest('.tab'); if (!b) return;
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t===b));
+  $('#counterView').classList.toggle('hide', b.dataset.tab!=='counter');
+  $('#reportView').classList.toggle('hide', b.dataset.tab!=='report');
+};
+
+/* ---------- 查詢 ---------- */
+async function doSearch(){
+  const q = $('#q').value.replace(/\D/g,'');
+  $('#results').innerHTML = ''; $('#memberCard').innerHTML = ''; S.member = null;
+  if (q.length < 3) { toast('請輸入完整手機號碼，或末 3～4 碼', true); return; }
+  await busy($('#counterView'), async () => {
+    const r = await api('search', { q });
+    if (!r.members.length) {
+      $('#results').innerHTML = `<p class="hint" style="margin:12px 0 0">查無會員。</p>` +
+        (r.exact ? `<button class="btn pri block" style="margin-top:8px" id="newFromSearch">為 ${esc(fmtPhone(q))} 開新會員</button>` : '');
+      const nb = $('#newFromSearch'); if (nb) nb.onclick = () => openCreate(q);
+      return;
+    }
+    if (r.members.length === 1) { showMember(r.members[0]); return; }
+    $('#results').innerHTML = r.members.map((m,i) =>
+      `<div class="result" data-i="${i}"><div><b>${esc(m.name)}</b>　${badge(m.tier)}<div class="hint">${esc(fmtPhone(m.phone))}</div></div><div>${fmt(m.balance)} 點</div></div>`).join('');
+    $('#results').querySelectorAll('.result').forEach(el => el.onclick = () => showMember(r.members[+el.dataset.i]));
+  });
+}
+$('#qBtn').onclick = doSearch;
+$('#q').addEventListener('keydown', e => { if (e.key==='Enter') doSearch(); });
+$('#newBtn').onclick = () => openCreate($('#q').value.replace(/\D/g,'').length >= 8 ? $('#q').value : '');
+
+function showMember(m){ S.member = m; $('#results').innerHTML = ''; renderMember(); }
+
+function renderMember(){
+  const m = S.member; if (!m) { $('#memberCard').innerHTML=''; return; }
+  const mgr = S.staff.role === '店長';
+  $('#memberCard').innerHTML = `
+  <div class="card">
+    <div class="row" style="justify-content:space-between;align-items:flex-start">
+      <div><span class="mname">${esc(m.name)}</span>　${badge(m.tier)}</div>
+      <span class="hint">${esc(m.id)}</span>
+    </div>
+    <div class="hint" style="margin-top:12px">點數餘額</div>
+    <div class="bal">${fmt(m.balance)}</div>
+    <dl class="meta">
+      <dt>手機</dt><dd>${esc(fmtPhone(m.phone))}</dd>
+      <dt>等級到期</dt><dd>${m.expiry ? esc(m.expiry) : '—'}</dd>
+      <dt>${esc(S.couponName||'折抵券')}</dt><dd>${m.coupons||0} 張</dd>
+      <dt>LINE</dt><dd>${m.bound ? '已綁定' : '<span class="neg">未綁定（無法扣點）</span>'}</dd>
+      <dt>玩家 PIN</dt><dd>${m.pinLocked ? '<span class="neg">已鎖定</span>' : m.hasPin ? '已設定' : '未設定（首次扣點時玩家會被要求設定）'}</dd>
+      ${m.note ? `<dt>備註</dt><dd>${esc(m.note)}</dd>` : ''}
+    </dl>
+    <div class="actions">
+      <button class="btn pri" id="aTop">儲值</button>
+      <button class="btn dark" id="aDed">扣點</button>
+      <button class="btn ghost" id="aHis">交易紀錄</button>
+      <button class="btn ghost" id="aEdit">修改資料</button>
+      ${mgr ? `<button class="btn ghost" id="aTier">調整等級／券</button>
+               <button class="btn ghost" id="aUnbind" ${m.bound?'':'disabled'}>解除 LINE 綁定</button>
+               <button class="btn ghost wide" id="aPin" ${m.hasPin||m.pinLocked?'':'disabled'}>重設玩家 PIN</button>` : ''}
+    </div>
+    ${!m.bound ? `<p class="hint" style="margin-bottom:0">請玩家加入官方帳號，從選單開啟「我的點數」輸入手機號碼綁定，綁定後才能扣點。</p>` : ''}
+  </div>`;
+  $('#aTop').onclick = openTopup; $('#aDed').onclick = openDeduct; $('#aHis').onclick = openHistory; $('#aEdit').onclick = openEdit;
+  $('#aDed').disabled = !m.bound || m.pinLocked;
+  if (mgr) { $('#aTier').onclick = openTier; $('#aUnbind').onclick = doUnbind; $('#aPin').onclick = doResetPin; }
+}
+
+/* ---------- Modal ---------- */
+function modal(html, opts){
+  const root = $('#modalRoot');
+  root.innerHTML = `<div class="modal-bg"><div class="modal">${html}</div></div>`;
+  const bg = root.firstElementChild;
+  if (!(opts && opts.locked)) bg.addEventListener('click', e => { if (e.target === bg) closeModal(); });
+  root.querySelectorAll('[data-close]').forEach(b => b.onclick = closeModal);
+  return root.querySelector('.modal');
+}
+function closeModal(){ pollId++; $('#modalRoot').innerHTML = ''; }
+const whoLine = m => `<div class="who">${esc(m.name)}　${esc(fmtPhone(m.phone))}　${badge(m.tier)}　餘額 ${fmt(m.balance)}</div>`;
+
+/* ---------- 新增會員 ---------- */
+function openCreate(phone){
+  const el = modal(`<h2>新增會員</h2>
+    <label>手機號碼</label><input id="cPhone" inputmode="numeric" value="${esc(phone||'')}">
+    <label>姓名</label><input id="cName">
+    <label>備註（選填）</label><input id="cNote">
+    <div class="foot"><button class="btn ghost" data-close>取消</button><button class="btn pri" id="cOk">建立</button></div>`);
+  (phone ? $('#cName') : $('#cPhone')).focus();
+  $('#cOk').onclick = () => busy(el, async () => {
+    const r = await api('createMember', { phone: $('#cPhone').value, name: $('#cName').value, note: $('#cNote').value });
+    closeModal(); toast('已建立會員 ' + r.member.name); $('#q').value = r.member.phone; showMember(r.member);
+  });
+}
+
+/* ---------- 儲值 ---------- */
+// 與後端 topupOutcome_ 相同的規則，修改時兩邊要一起改
+function topupOutcome(m, amount){
+  const T = S.tiers, cur = tierIdx(m.tier);
+  let full = 0; T.forEach((t,i) => { if (t.threshold > 0 && amount >= t.threshold) full = i; });
+  if (full > cur) return { change:'upgrade', tier:T[full].name, coupons:T[full].coupon };
+  if (cur > 0 && full === cur) return { change:'renew', tier:T[cur].name, coupons:T[cur].coupon };
+  if (cur > 0 && amount >= T[cur].keepMin) return { change:'keep', tier:T[cur].name, coupons:0 };
+  if (cur > 0) return { change:'downgrade', tier:T[full].name, coupons: full ? T[full].coupon : 0 };
+  return { change:null, tier:T[0].name, coupons:0 };
+}
+function topupPreview(m, amount){
+  if (!(amount > 0)) return '';
+  const o = topupOutcome(m, amount), cur = tierIdx(m.tier);
+  const cp = o.coupons ? `，贈送${esc(S.couponName)} ${o.coupons} 張` : '';
+  let tierMsg = '';
+  if (o.change === 'upgrade') tierMsg = `<div class="pos">將升級為 <b>${esc(o.tier)}</b>，效期一年${cp}</div>`;
+  else if (o.change === 'renew') tierMsg = `<div class="pos">${esc(o.tier)} 效期重新起算一年${cp}</div>`;
+  else if (o.change === 'keep') tierMsg = `<div class="pos">已達續用門檻，保留 ${esc(o.tier)}（效期不變）</div>`;
+  else if (o.change === 'downgrade') tierMsg = `<div class="neg"><b>⚠ 未達 ${esc(m.tier)} 續用門檻 ${fmt(S.tiers[cur].keepMin)} 元，儲值後將變為「${esc(o.tier)}」</b>${cp}</div>`;
+  else {
+    const next = S.tiers.find((t,i) => i > cur && t.threshold > 0);
+    if (next) tierMsg = `<div class="hint">單次儲值 ${fmt(next.threshold)} 可升級為 ${esc(next.name)}</div>`;
+  }
+  return `<div class="sum"><span>儲值後餘額</span><b>${fmt(m.balance + amount)}</b></div>${tierMsg}`;
+}
+function openTopup(){
+  const m = S.member;
+  const quick = Array.from(new Set([500, 1000].concat(S.tiers.filter(t => t.threshold > 0).flatMap(t => [t.keepMin, t.threshold])).filter(x => x > 0))).sort((a,b)=>a-b);
+  const el = modal(`<h2>儲值</h2>${whoLine(m)}
+    <label>儲值金額（1 元 = 1 點）</label><input id="tAmt" inputmode="numeric" placeholder="0">
+    <div class="quick">${quick.map(q => `<button class="btn sm ghost" data-q="${q}">${fmt(q)}</button>`).join('')}</div>
+    <div id="tPrev" style="margin-top:8px"></div>
+    <label>備註（選填，例如付款方式）</label><input id="tNote">
+    <div class="foot"><button class="btn ghost" data-close>取消</button><button class="btn pri" id="tOk" disabled>確認儲值</button></div>`);
+  const amt = () => parseInt($('#tAmt').value.replace(/\D/g,''), 10) || 0;
+  const upd = () => { $('#tPrev').innerHTML = topupPreview(m, amt()); $('#tOk').disabled = !(amt() > 0); };
+  $('#tAmt').oninput = upd;
+  el.querySelectorAll('[data-q]').forEach(b => b.onclick = () => { $('#tAmt').value = b.dataset.q; upd(); });
+  $('#tAmt').focus();
+  $('#tOk').onclick = () => {
+    const a = amt();
+    const o = topupOutcome(m, a);
+    const warn = o.change === 'downgrade' ? `\n\n⚠ 等級將由 ${m.tier} 變為 ${o.tier}` : '';
+    if (!confirm(`請與客人確認：\n\n${m.name}（${fmtPhone(m.phone)}）\n儲值 ${fmt(a)} 點${warn}`)) return;
+    busy(el, async () => {
+      const r = await api('topup', { memberId: m.id, amount: a, note: $('#tNote').value });
+      closeModal(); S.member = r.member; renderMember();
+      const msg = { upgrade:`，已升級為 ${r.member.tier}`, renew:'，等級已續期', keep:`，保留 ${r.member.tier}`, downgrade:`，等級變為 ${r.member.tier}` }[r.tierChange] || '';
+      toast(`儲值 ${fmt(a)} 點完成${msg}` + (r.couponsAdded ? `，贈送${S.couponName} ${r.couponsAdded} 張` : ''));
+    });
+  };
+}
+
+/* ---------- 扣點 ---------- */
+function openDeduct(){
+  const m = S.member;
+  const qty = {};
+  const cats = {};
+  S.items.forEach(it => (cats[it.category] = cats[it.category] || []).push(it));
+  const el = modal(`<h2>扣點</h2>${whoLine(m)}
+    <div class="hint">價格依 ${esc(m.tier)} 計算</div>
+    <input id="dSearch" placeholder="搜尋劇本名稱" autocomplete="off" style="margin-top:8px">
+    <div id="dPicked" class="hint" style="margin-top:6px"></div>
+    <div id="dList">
+    ${S.items.length ? Object.keys(cats).map(c => `<div class="cat">${esc(c)}</div>` + cats[c].map(it => `
+      <div class="item">
+        <div class="nm">${esc(it.name)}<div class="pr">${fmt(it.prices[m.tier])} 點</div></div>
+        <div class="step"><button data-m="${esc(it.code)}">−</button><span id="q_${esc(it.code)}">0</span><button data-p="${esc(it.code)}">＋</button></div>
+      </div>`).join('')).join('') : '<p class="hint">價目表沒有啟用的品項</p>'}
+    </div>
+    <div class="cat">自訂扣點（非價目表品項）</div>
+    <div class="row" style="margin-top:4px">
+      <input id="dcLabel" class="grow" placeholder="項目說明">
+      <input id="dcPts" inputmode="numeric" placeholder="點數" style="width:110px">
+    </div>
+    ${m.coupons > 0 ? `<div class="cat">${esc(S.couponName)}（剩 ${m.coupons} 張${S.couponValue ? '，每張折 ' + fmt(S.couponValue) + ' 點' : ''}）</div>
+    <div class="item"><div class="nm">使用張數</div>
+      <div class="step"><button data-cm>−</button><span id="dCoupon">0</span><button data-cp>＋</button></div></div>` : ''}
+    <div class="sum"><span>本次扣點</span><b id="dTotal">0</b></div>
+    <div class="sum" style="padding-top:0"><span>扣點後餘額</span><b id="dAfter">${fmt(m.balance)}</b></div>
+    <label>備註（選填）</label><input id="dNote">
+    <div class="foot"><button class="btn ghost" data-close>取消</button><button class="btn dark" id="dOk" disabled>送出給玩家確認</button></div>`);
+  const byCode = {}; S.items.forEach(it => byCode[it.code] = it);
+  let useC = 0;
+  const gross = () => Object.keys(qty).reduce((s,c) => s + qty[c] * byCode[c].prices[m.tier], 0) + (parseInt($('#dcPts').value.replace(/\D/g,''),10)||0);
+  const total = () => { const g = gross(); return g - Math.min(g, (S.couponValue||0) * useC); };
+  const upd = () => {
+    const t = total(), after = m.balance - t;
+    $('#dTotal').textContent = fmt(t);
+    $('#dAfter').textContent = fmt(after); $('#dAfter').className = after < 0 ? 'neg' : '';
+    $('#dOk').disabled = !(gross() > 0) || after < 0;
+    const picked = Object.keys(qty).map(c => `${byCode[c].name} ×${qty[c]}`);
+    $('#dPicked').textContent = picked.length ? '已選：' + picked.join('、') : '';
+    $('#dOk').textContent = after < 0 ? '點數不足' : '送出給玩家確認';
+  };
+  el.querySelectorAll('[data-p],[data-m]').forEach(b => b.onclick = () => {
+    const c = b.dataset.p || b.dataset.m;
+    qty[c] = Math.max(0, Math.min(99, (qty[c]||0) + (b.dataset.p ? 1 : -1)));
+    if (!qty[c]) delete qty[c];
+    document.getElementById('q_'+c).textContent = qty[c] || 0;
+    upd();
+  });
+  $('#dcPts').oninput = upd;
+  $('#dSearch').oninput = () => {
+    const q = $('#dSearch').value.trim().toLowerCase();
+    el.querySelectorAll('#dList .item').forEach(row => { row.style.display = !q || row.querySelector('.nm').textContent.toLowerCase().includes(q) ? '' : 'none'; });
+    el.querySelectorAll('#dList .cat').forEach(cat => {
+      let n = cat.nextElementSibling, any = false;
+      while (n && !n.classList.contains('cat')) { if (n.style.display !== 'none') any = true; n = n.nextElementSibling; }
+      cat.style.display = any ? '' : 'none';
+    });
+  };
+  const cbtn = el.querySelectorAll('[data-cp],[data-cm]');
+  cbtn.forEach(b => b.onclick = () => { useC = Math.max(0, Math.min(m.coupons, useC + (b.hasAttribute('data-cp') ? 1 : -1))); $('#dCoupon').textContent = useC; upd(); });
+  $('#dOk').onclick = () => {
+    const items = Object.keys(qty).map(c => ({ code:c, qty:qty[c] }));
+    const cpts = parseInt($('#dcPts').value.replace(/\D/g,''),10) || 0;
+    const clabel = $('#dcLabel').value.trim();
+    if (cpts && !clabel) { toast('自訂扣點請填寫項目說明', true); return; }
+    busy(el, async () => {
+      const r = await api('requestDeduct', { memberId: m.id, items, custom: cpts ? { points: cpts, label: clabel } : null, coupons: useC, note: $('#dNote').value });
+      openWaiting(m, r);
+    });
+  };
+}
+
+/* ---------- 等待玩家確認 ---------- */
+let pollId = 0;
+function openWaiting(m, req){
+  const myPoll = ++pollId;
+  const el = modal(`<h2>等待玩家確認</h2>${whoLine(m)}
+    <div class="sum"><span>本次扣點</span><b>${fmt(req.total)}</b></div>
+    ${req.pushed
+      ? `<p>已傳送 LINE 通知，請玩家點開訊息輸入 PIN。</p>`
+      : `<p class="err">LINE 通知未送達（${esc(req.pushError)}）。<br>請玩家從官方帳號選單開啟「我的點數」，畫面上方就會看到這筆申請。</p>`}
+    <p class="hint" id="wStatus">等待中…</p>
+    <div class="foot"><button class="btn ghost" id="wCancel">取消這筆申請</button></div>`, { locked: true });
+  const stop = () => { if (pollId === myPoll) pollId++; };
+  const finish = (msg, bad) => {
+    stop();
+    $('#wStatus').innerHTML = `<b class="${bad?'neg':'pos'}">${esc(msg)}</b>`;
+    el.querySelector('.foot').innerHTML = `<button class="btn dark" data-close>關閉</button>`;
+    el.querySelector('[data-close]').onclick = closeModal;
+  };
+  $('#wCancel').onclick = async () => {
+    if (!confirm('確定取消這筆扣點申請？')) return;
+    try { await api('cancelReq', { reqId: req.reqId }); } catch(e){ toast(e.message, true); }
+    finish('已取消，未扣點', true);
+  };
+  const tick = async () => {
+    if (pollId !== myPoll) return;
+    try {
+      const s = await api('reqStatus', { reqId: req.reqId });
+      if (pollId !== myPoll) return;
+      if (s.status === '待確認') {
+        const mm = Math.floor(s.secondsLeft/60), ss = ('0'+(s.secondsLeft%60)).slice(-2);
+        $('#wStatus').textContent = `等待中…剩 ${mm}:${ss}`;
+        setTimeout(tick, 3000); return;
+      }
+      if (s.status === '已完成') {
+        S.member = s.member; renderMember();
+        finish(`玩家已確認，扣 ${fmt(s.total)} 點，餘額 ${fmt(s.member.balance)}`);
+        toast('扣點完成'); return;
+      }
+      finish(s.status === '玩家拒絕' ? '玩家拒絕了這筆扣點，未扣點' : `這筆申請${s.status}，未扣點`, true);
+    } catch(e) {
+      if (pollId !== myPoll) return;
+      $('#wStatus').textContent = '連線不穩，重試中…'; setTimeout(tick, 5000);
+    }
+  };
+  setTimeout(tick, 2000);
+}
+function doResetPin(){
+  const m = S.member;
+  if (!confirm(`重設 ${m.name} 的 PIN？\n\n請先核對玩家身分證件。重設後玩家下次開啟「我的點數」會被要求設定新 PIN。`)) return;
+  busy($('#memberCard'), async () => { const r = await api('resetPin', { memberId: m.id }); S.member = r.member; renderMember(); toast('PIN 已重設'); });
+}
+
+/* ---------- 交易紀錄 / 沖正 ---------- */
+function openHistory(){
+  const m = S.member;
+  const el = modal(`<h2>交易紀錄</h2>${whoLine(m)}<div id="hList"><p class="hint">載入中…</p></div>
+    <div class="foot"><button class="btn ghost" data-close>關閉</button></div>`);
+  busy(el, async () => {
+    const r = await api('history', { memberId: m.id, limit: 100 });
+    if (!r.txns.length) { $('#hList').innerHTML = '<p class="hint">尚無紀錄</p>'; return; }
+    $('#hList').innerHTML = r.txns.map(t => `
+      <div class="tx ${t.voidState==='已沖正'?'voided':''}">
+        <div class="top"><span><b>${esc(t.type)}</b>　${esc(t.time)}</span>
+          <span class="pts ${t.points>0?'pos':t.points<0?'neg':''}">${t.points>0?'+':''}${t.points?fmt(t.points):''}</span></div>
+        <div class="hint">${esc(t.detail)}${t.note ? '｜' + esc(t.note) : ''}</div>
+        <div class="top hint"><span>${esc(t.staff)}${t.voidState ? '　' + esc(t.voidState) : ''}</span>
+          <span>${t.points ? '餘額 ' + fmt(t.after) : ''}</span></div>
+        ${t.canVoid ? `<button class="btn sm ghost" data-void="${esc(t.id)}" style="margin-top:6px">沖正這筆</button>` : ''}
+      </div>`).join('');
+    el.querySelectorAll('[data-void]').forEach(b => b.onclick = () => {
+      const t = r.txns.find(x => x.id === b.dataset.void);
+      const reason = prompt(`沖正「${t.type} ${t.points>0?'+':''}${fmt(t.points)}」\n請輸入原因：` + (t.type==='儲值' ? '\n（注意：沖正儲值不會自動調回等級，需要時請店長手動調整）' : ''));
+      if (!reason || !reason.trim()) return;
+      busy(el, async () => {
+        const v = await api('void', { txnId: t.id, reason: reason.trim() });
+        S.member = v.member; renderMember(); toast('已沖正，餘額 ' + fmt(v.member.balance)); openHistory();
+      });
+    });
+  });
+}
+
+/* ---------- 修改資料 ---------- */
+function openEdit(){
+  const m = S.member, mgr = S.staff.role === '店長';
+  const el = modal(`<h2>修改資料</h2>${whoLine(m)}
+    <label>姓名</label><input id="eName" value="${esc(m.name)}">
+    <label>手機${mgr ? '' : '（限店長修改）'}</label><input id="ePhone" inputmode="numeric" value="${esc(m.phone)}" ${mgr?'':'disabled'}>
+    <label>備註</label><textarea id="eNote">${esc(m.note)}</textarea>
+    <div class="foot"><button class="btn ghost" data-close>取消</button><button class="btn pri" id="eOk">儲存</button></div>`);
+  $('#eOk').onclick = () => busy(el, async () => {
+    const data = { memberId: m.id, name: $('#eName').value, note: $('#eNote').value };
+    if (mgr) data.phone = $('#ePhone').value;
+    const r = await api('editMember', data);
+    closeModal(); S.member = r.member; renderMember(); toast('已儲存');
+  });
+}
+
+/* ---------- 店長：等級 / 解除綁定 ---------- */
+function openTier(){
+  const m = S.member;
+  const d = new Date(); d.setFullYear(d.getFullYear()+1); d.setDate(d.getDate()-1);
+  const def = m.expiry || d.toISOString().slice(0,10);
+  const el = modal(`<h2>調整等級／折抵券</h2>${whoLine(m)}
+    <label>等級</label><select id="gTier">${S.tiers.map(t => `<option ${t.name===m.tier?'selected':''}>${esc(t.name)}</option>`).join('')}</select>
+    <label>到期日（基本等級不需要）</label><input type="date" id="gExp" value="${esc(def)}">
+    <label>${esc(S.couponName||'折抵券')}張數</label><input id="gCp" inputmode="numeric" value="${m.coupons||0}">
+    <label>原因</label><input id="gNote" placeholder="例：沖正儲值後調回">
+    <div class="foot"><button class="btn ghost" data-close>取消</button><button class="btn pri" id="gOk">儲存</button></div>`);
+  $('#gOk').onclick = () => busy(el, async () => {
+    const r = await api('setTier', { memberId: m.id, tier: $('#gTier').value, expiry: $('#gExp').value, coupons: $('#gCp').value, note: $('#gNote').value || '店長手動調整' });
+    closeModal(); S.member = r.member; renderMember(); toast('等級已更新');
+  });
+}
+function doUnbind(){
+  const m = S.member;
+  if (!confirm(`解除 ${m.name} 的 LINE 綁定？\n解除後客人需重新輸入手機號碼綁定。`)) return;
+  busy($('#memberCard'), async () => { const r = await api('unbind', { memberId: m.id }); S.member = r.member; renderMember(); toast('已解除綁定'); });
+}
+
+/* ---------- 報表 ---------- */
+const iso = d => { const z = new Date(d.getTime() - d.getTimezoneOffset()*60000); return z.toISOString().slice(0,10); };
+function setRange(k){
+  const t = new Date(); let f = new Date(t), e = new Date(t);
+  if (k==='yesterday') { f.setDate(t.getDate()-1); e = new Date(f); }
+  if (k==='month') { f = new Date(t.getFullYear(), t.getMonth(), 1); }
+  if (k==='lastmonth') { f = new Date(t.getFullYear(), t.getMonth()-1, 1); e = new Date(t.getFullYear(), t.getMonth(), 0); }
+  $('#rFrom').value = iso(f); $('#rTo').value = iso(e);
+}
+setRange('today');
+document.querySelectorAll('[data-range]').forEach(b => b.onclick = () => { setRange(b.dataset.range); runReport(); });
+$('#rBtn').onclick = runReport;
+let lastReport = null;
+function runReport(){
+  busy($('#reportView'), async () => {
+    const r = await api('report', { from: $('#rFrom').value, to: $('#rTo').value });
+    lastReport = r; const s = r.summary;
+    $('#reportOut').innerHTML = `
+      <div class="tiles">
+        <div class="tile"><div class="k">儲值收入（${s.topupN} 筆）</div><div class="v">${fmt(s.topup)}</div></div>
+        <div class="tile"><div class="k">扣點消耗（${s.deductN} 筆）</div><div class="v">${fmt(s.deduct)}</div></div>
+        <div class="tile"><div class="k">新會員</div><div class="v">${fmt(s.newMembers)}</div></div>
+        <div class="tile"><div class="k">沖正筆數</div><div class="v">${fmt(s.voids)}</div></div>
+      </div>
+      <div class="card"><div class="row" style="justify-content:space-between">
+        <div><div class="hint">目前流通中的點數（${fmt(s.memberCount)} 位會員）</div><div class="bal" style="font-size:30px">${fmt(s.outstanding)}</div></div>
+        <span class="hint" style="max-width:220px">客人已付款、尚未使用的點數，等同店家對客人的負債。</span></div></div>
+      <div class="card"><div class="row" style="justify-content:space-between"><b>每日明細</b><button class="btn sm ghost" id="csvBtn">下載 CSV</button></div>
+        <div class="scroll"><table><tr><th>日期</th><th>儲值</th><th>筆</th><th>扣點</th><th>筆</th></tr>
+        ${r.days.map(d => `<tr><td>${d.date}</td><td>${fmt(d.topup)}</td><td>${d.topupN}</td><td>${fmt(d.deduct)}</td><td>${d.deductN}</td></tr>`).join('') || '<tr><td colspan="5">無資料</td></tr>'}
+        </table></div></div>
+      <div class="card"><b>品項消耗</b><div class="scroll"><table><tr><th>品項</th><th>數量</th><th>點數</th></tr>
+        ${r.items.map(i => `<tr><td>${esc(i.name)}</td><td>${fmt(i.qty)}</td><td>${fmt(i.points)}</td></tr>`).join('') || '<tr><td colspan="3">無資料</td></tr>'}
+        </table></div></div>
+      <div class="card"><b>員工經手（對帳用）</b><div class="scroll"><table><tr><th>員工</th><th>儲值</th><th>筆</th><th>扣點</th><th>筆</th></tr>
+        ${r.staff.map(i => `<tr><td>${esc(i.name)}</td><td>${fmt(i.topup)}</td><td>${i.topupN}</td><td>${fmt(i.deduct)}</td><td>${i.deductN}</td></tr>`).join('') || '<tr><td colspan="5">無資料</td></tr>'}
+        </table></div></div>
+      <p class="hint">已沖正的交易不列入統計。完整明細請看試算表「交易紀錄」。</p>`;
+    $('#csvBtn').onclick = downloadCsv;
+  });
+}
+function downloadCsv(){
+  const r = lastReport; if (!r) return;
+  const rows = [['日期','儲值','儲值筆數','扣點','扣點筆數']].concat(r.days.map(d => [d.date,d.topup,d.topupN,d.deduct,d.deductN]));
+  rows.push([]); rows.push(['品項','數量','點數']); r.items.forEach(i => rows.push([i.name,i.qty,i.points]));
+  rows.push([]); rows.push(['員工','儲值','儲值筆數','扣點','扣點筆數']); r.staff.forEach(i => rows.push([i.name,i.topup,i.topupN,i.deduct,i.deductN]));
+  const csv = '﻿' + rows.map(row => row.map(v => '"' + String(v).replace(/"/g,'""') + '"').join(',')).join('\r\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type:'text/csv;charset=utf-8' }));
+  a.download = `點數報表_${r.from}_${r.to}.csv`; a.click();
+}
+
+/* ---------- 啟動 ---------- */
+(async function init(){
+  if (!CFG.API_URL || /請貼上/.test(CFG.API_URL)) { $('#lgErr').textContent = '尚未設定 config.js 的 API_URL'; return; }
+  $('#lgAcc').value = store.get('pts_acc') || '';
+  const saved = store.get('pts_session');
+  if (saved) {
+    try { const s = JSON.parse(saved); S.token = s.token; S.staff = s.staff; await enterApp(); return; }
+    catch(e){ logoutLocal(); }
+  }
+  ($('#lgAcc').value ? $('#lgPin') : $('#lgAcc')).focus();
+})();
+})();
+</script>
+</body>
+</html>

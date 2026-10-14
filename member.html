@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>我的點數</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@600;700&display=swap" rel="stylesheet">
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<script src="config.js"></script>
+<style>
+:root{
+  --bg:#14120f; --surface:#1e1b17; --line:#332e27; --ink:#f1ebdf; --muted:#9b9384;
+  --accent:#c9a45c; --pos:#8cc79a; --neg:#e48a7f;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans TC",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.wrap{max-width:480px;margin:0 auto;padding:24px 16px calc(32px + env(safe-area-inset-bottom))}
+.shop{font-family:"Noto Serif TC",serif;font-weight:700;letter-spacing:.2em;text-align:center;color:var(--accent);font-size:15px;margin:4px 0 20px}
+.mcard{position:relative;border-radius:18px;padding:22px 20px;overflow:hidden;min-height:200px;
+  background:linear-gradient(135deg,#2a2621,#1a1815);border:1px solid #3a342b;box-shadow:0 18px 40px rgba(0,0,0,.45)}
+.mcard::after{content:"";position:absolute;inset:0;background:radial-gradient(120% 80% at 100% 0%,rgba(255,255,255,.08),transparent 60%);pointer-events:none}
+.mcard.t1{background:linear-gradient(135deg,#5d6268,#2e3236);border-color:#7b8188}
+.mcard.t2{background:linear-gradient(135deg,#8a6a2a,#3b2c10);border-color:#b8913e}
+.mcard.t3{background:linear-gradient(135deg,#0b0b0b,#2a2418);border-color:#c9a45c}
+.mcard .top{display:flex;justify-content:space-between;align-items:center}
+.tier{font-family:"Noto Serif TC",serif;font-size:20px;font-weight:700;letter-spacing:.08em}
+.mcard .name{font-size:14px;opacity:.85}
+.mcard .lbl{font-size:12px;opacity:.7;margin-top:28px;letter-spacing:.1em}
+.mcard .bal{font-size:48px;font-weight:700;letter-spacing:-.02em;line-height:1.05;font-variant-numeric:tabular-nums}
+.mcard .bal small{font-size:16px;font-weight:500;margin-left:4px;opacity:.8}
+.mcard .exp{font-size:12px;opacity:.75;margin-top:10px}
+.next{margin:16px 2px 0;font-size:13px;color:var(--muted);line-height:1.6}
+h2{font-size:14px;color:var(--muted);font-weight:500;letter-spacing:.1em;margin:28px 0 8px}
+.tx{display:flex;justify-content:space-between;gap:12px;padding:14px 0;border-bottom:1px solid var(--line)}
+.tx .d{font-size:14px}.tx .s{font-size:12px;color:var(--muted);margin-top:2px}
+.tx .p{font-weight:700;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.tx .p small{display:block;font-weight:400;font-size:12px;color:var(--muted)}
+.pos{color:var(--pos)}.neg{color:var(--neg)}
+.tx.voided{opacity:.45}.tx.voided .p span{text-decoration:line-through}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px}
+.panel p{color:var(--muted);font-size:14px;line-height:1.7;margin:0 0 16px}
+input{width:100%;font:inherit;font-size:18px;padding:14px;border-radius:12px;border:1px solid var(--line);background:#0f0d0b;color:var(--ink);letter-spacing:.05em}
+button{font:inherit;width:100%;margin-top:12px;padding:14px;border:0;border-radius:12px;background:var(--accent);color:#1a1510;font-weight:700;font-size:16px;cursor:pointer}
+button.ghost{background:transparent;color:var(--muted);border:1px solid var(--line);font-weight:500}
+button:disabled{opacity:.5}
+.err{color:var(--neg);font-size:14px;margin-top:10px;min-height:1em}
+.center{text-align:center;color:var(--muted);padding:60px 0;font-size:14px}
+.req{background:#2a1f12;border:1px solid var(--accent);border-radius:16px;padding:18px;margin-bottom:20px}
+.req h3{margin:0 0 4px;font-size:18px;color:var(--accent)}
+.req .ln{font-size:14px;padding:10px 0;border-bottom:1px solid #3a2e1e}
+.req .ln .l1,.req .ln .l2{display:flex;justify-content:space-between;gap:12px}
+.req .ln .l1{font-weight:700}
+.req .ln .orig{color:var(--muted);font-weight:400;white-space:nowrap}
+.req .ln .l2{color:var(--accent);margin-top:3px;font-variant-numeric:tabular-nums}
+.req .ln .l2 span:last-child{color:var(--ink);white-space:nowrap}
+.req .tot{display:flex;justify-content:space-between;font-weight:700;font-size:18px;padding:10px 0 4px}
+.req .sm{font-size:12px;color:var(--muted)}
+.pin{text-align:center;font-size:26px;letter-spacing:.5em;margin-top:12px}
+.pin::placeholder{font-size:16px;letter-spacing:.1em}
+.row2{display:flex;gap:8px}.row2 button{flex:1}
+.done{background:#15261a;border:1px solid #3d6b48;border-radius:16px;padding:16px;margin-bottom:20px;color:var(--pos);font-weight:700;text-align:center}
+.empty{color:var(--muted);font-size:14px;padding:16px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="shop" id="shop"></div>
+  <div id="view"><div class="center">載入中…</div></div>
+</div>
+<script>
+(function(){
+'use strict';
+const CFG = window.APP_CONFIG || {};
+const view = document.getElementById('view');
+const fmt = n => Number(n||0).toLocaleString('zh-TW');
+const esc = s => String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+document.getElementById('shop').textContent = CFG.SHOP_NAME || '';
+
+async function api(action, data){
+  const idToken = liff.getIDToken();
+  const res = await fetch(CFG.API_URL, { method:'POST', body: JSON.stringify(Object.assign({ action, idToken }, data||{})) });
+  const j = await res.json();
+  if (!j.ok) throw new Error(j.error);
+  return j;
+}
+
+function showError(msg){
+  view.innerHTML = `<div class="panel"><p>${esc(msg)}</p><button id="retry">重新整理</button></div>`;
+  document.getElementById('retry').onclick = () => location.reload();
+}
+
+function renderBind(){
+  view.innerHTML = `<div class="panel">
+    <p>第一次使用，請輸入在櫃檯登記的手機號碼，完成綁定後就能隨時查詢點數。</p>
+    <input id="ph" inputmode="numeric" maxlength="12" placeholder="09xxxxxxxx" autocomplete="tel">
+    <div class="err" id="err"></div>
+    <button id="go">綁定</button>
+    <p style="margin:16px 0 0;font-size:12px">還不是會員？請到櫃檯開通。</p>
+  </div>`;
+  const go = document.getElementById('go');
+  go.onclick = async () => {
+    go.disabled = true; document.getElementById('err').textContent = '';
+    try { render(await api('bind', { phone: document.getElementById('ph').value })); }
+    catch(e){ document.getElementById('err').textContent = e.message; go.disabled = false; }
+  };
+}
+
+function pinInput(id, ph){
+  return `<input id="${id}" class="pin" type="password" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="${ph||'••••'}">`;
+}
+
+function renderSetPin(d){
+  const pending = (d.pending||[]).length;
+  view.innerHTML = `<div class="panel">
+    <p><b style="color:var(--ink)">${esc(d.member.name)}</b>，請設定 4～6 位數字的 PIN 密碼。<br>之後每次在櫃檯扣點，都要在這裡輸入 PIN 確認，避免點數被冒用。</p>
+    ${pending ? `<p style="color:var(--accent)">櫃檯有一筆扣點正在等你確認，設定完 PIN 就能處理。</p>` : ''}
+    ${pinInput('p1','設定 PIN')}
+    ${pinInput('p2','再輸入一次')}
+    <div class="err" id="err"></div>
+    <button id="go">設定 PIN</button>
+    <p style="margin:16px 0 0;font-size:12px">請勿使用生日、相同數字或連續數字。忘記 PIN 需到櫃檯由店長核對身分後重設。</p>
+  </div>`;
+  const go = document.getElementById('go');
+  go.onclick = async () => {
+    go.disabled = true; document.getElementById('err').textContent = '';
+    try { render(await api('setPin', { pin: document.getElementById('p1').value, pin2: document.getElementById('p2').value })); }
+    catch(e){ document.getElementById('err').textContent = e.message; go.disabled = false; }
+  };
+}
+
+function reqHtml(r, balance, locked){
+  return `<div class="req" data-req="${esc(r.id)}">
+    <h3>扣點確認</h3>
+    <div class="sm">${esc(r.time)}｜櫃檯 ${esc(r.staff)}</div>
+    <div style="margin-top:10px">${r.lines.map(l => `<div class="ln">
+      <div class="l1"><span>${esc(l.title)}</span><span class="orig">${esc(l.original)}</span></div>
+      <div class="l2"><span>${esc(l.tierText)}</span><span>${esc(l.result)}</span></div>
+    </div>`).join('')}</div>
+    <div class="tot"><span>合計</span><span>${fmt(r.total)} 點</span></div>
+    <div class="sm">確認後餘額 ${fmt(balance - r.total)} 點</div>
+    ${locked
+      ? `<p class="err" style="margin-top:12px">PIN 錯誤次數過多已鎖定，請洽櫃檯由店長協助重設。</p>`
+      : `${pinInput('pin_'+r.id,'輸入 PIN')}
+         <div class="err" id="err_${esc(r.id)}"></div>
+         <div class="row2"><button class="ghost" data-no="${esc(r.id)}">不是我</button><button data-yes="${esc(r.id)}">確認扣點</button></div>`}
+  </div>`;
+}
+
+function render(d){
+  if (d.shop && !CFG.SHOP_NAME) document.getElementById('shop').textContent = d.shop;
+  if (!d.bound) { renderBind(); return; }
+  if (!d.member.hasPin && !d.member.pinLocked) { renderSetPin(d); return; }
+  const m = d.member, ti = Math.min(d.tierIndex, 3);
+  const pending = d.pending || [];
+  const next = d.tiers.find((t,i) => i > d.tierIndex && t.threshold > 0);
+  let nextMsg = '';
+  if (next) nextMsg = `單次儲值滿 ${fmt(next.threshold)} 元可升級為「${esc(next.name)}」。`;
+  const curT = d.tiers[d.tierIndex];
+  if (m.expiry && curT) nextMsg += `${nextMsg ? '<br>' : ''}再次儲值至少 ${fmt(curT.keepMin)} 元可續用${esc(curT.name)}優惠；單次儲值 ${fmt(curT.threshold)} 元效期重新計算一年。`;
+  view.innerHTML = `
+    ${d.done ? `<div class="done">已扣 ${fmt(d.done.total)} 點，剩餘 ${fmt(d.done.balance)} 點</div>` : ''}
+    <div class="mcard t${ti}">
+      <div class="top"><span class="tier">${esc(m.tier)}</span><span class="name">${esc(m.name)}</span></div>
+      <div class="lbl">可用點數</div>
+      <div class="bal">${fmt(m.balance)}<small>點</small></div>
+      <div class="exp">${m.expiry ? '等級效期至 ' + esc(m.expiry) : '　'}${m.coupons ? `<span style="float:right">${esc(d.couponName)} ${m.coupons} 張</span>` : ''}</div>
+    </div>
+    ${nextMsg ? `<div class="next">${nextMsg}</div>` : ''}
+    ${pending.length ? `<div style="margin-top:20px">${pending.map(r => reqHtml(r, m.balance, m.pinLocked)).join('')}</div>` : ''}
+    <h2>最近紀錄</h2>
+    ${d.txns.length ? d.txns.map(t => `
+      <div class="tx ${t.voided?'voided':''}">
+        <div><div class="d">${esc(t.type==='沖正' ? '更正' : t.type==='期初匯入' ? '舊系統點數轉入' : t.type)}${t.voided ? '（已更正）' : ''}</div>
+          <div class="s">${esc(t.time)}${t.type==='扣點' && t.detail ? '｜' + esc(t.detail.replace(/ @\d+/g,'')) : ''}</div></div>
+        <div class="p ${t.points>0?'pos':'neg'}"><span>${t.points>0?'+':''}${fmt(t.points)}</span><small>餘 ${fmt(t.after)}</small></div>
+      </div>`).join('') : '<div class="empty">尚無紀錄</div>'}
+    <button class="ghost" id="refresh" style="margin-top:24px">重新整理</button>`;
+  document.getElementById('refresh').onclick = load;
+  view.querySelectorAll('[data-yes]').forEach(b => b.onclick = async () => {
+    const id = b.dataset.yes, err = document.getElementById('err_'+id);
+    const pin = document.getElementById('pin_'+id).value;
+    if (!pin) { err.textContent = '請輸入 PIN'; return; }
+    b.disabled = true; err.textContent = '';
+    try { render(await api('confirmDeduct', { reqId: id, pin })); window.scrollTo(0,0); }
+    catch(e){ err.textContent = e.message; b.disabled = false; if (/鎖定|已逾時|已取消|找不到/.test(e.message)) setTimeout(load, 2500); }
+  });
+  view.querySelectorAll('[data-no]').forEach(b => b.onclick = async () => {
+    if (!confirm('拒絕這筆扣點？\n如果不是你本人在櫃檯操作，請告知店家。')) return;
+    b.disabled = true;
+    try { render(await api('rejectDeduct', { reqId: b.dataset.no })); } catch(e){ showError(e.message); }
+  });
+  if (pending.length && !m.pinLocked) { const f = document.getElementById('pin_'+pending[0].id); if (f) f.focus(); }
+}
+
+async function load(){
+  view.innerHTML = '<div class="center">載入中…</div>';
+  try { render(await api('me')); } catch(e){ showError(e.message); }
+}
+
+(async function init(){
+  if (!CFG.LIFF_ID || /請貼上/.test(CFG.LIFF_ID)) { showError('系統尚未設定 LIFF_ID'); return; }
+  try {
+    await liff.init({ liffId: CFG.LIFF_ID });
+    if (!liff.isLoggedIn()) { liff.login({ redirectUri: location.href }); return; }
+    if (!liff.getIDToken()) { showError('無法取得 LINE 身分，請確認 LIFF 已開啟 openid 權限'); return; }
+    await load();
+    // 從背景切回來時自動更新（例如在櫃檯等待扣點申請）
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && !document.querySelector('input:focus')) load();
+    });
+  } catch(e){ showError('LINE 初始化失敗：' + e.message); }
+})();
+})();
+</script>
+</body>
+</html>
