@@ -45,7 +45,7 @@ label{display:block;font-size:13px;color:var(--muted);margin:12px 0 4px}
 .result:hover{border-color:var(--ink)}
 .mname{font-size:22px;font-weight:700}
 .badge{display:inline-block;padding:2px 10px;border-radius:999px;font-size:13px;font-weight:700;background:var(--line);color:var(--ink);vertical-align:middle}
-.badge.t1{background:#e7e9ec;color:#4a5058}.badge.t2{background:#f3e7c7;color:#7a5a12}.badge.t3{background:#1f1d1a;color:#e9cf87}
+.badge.t1{background:#7a1e26;color:#f3dfae}.badge.t2{background:#1f3a7a;color:#f3dfae}.badge.t3{background:#151311;color:#e9cf87}
 .bal{font-size:44px;font-weight:700;letter-spacing:-.02em;line-height:1.1;font-variant-numeric:tabular-nums}
 .meta{display:grid;grid-template-columns:auto 1fr;gap:4px 16px;font-size:14px;margin-top:8px}
 .meta dt{color:var(--muted)}.meta dd{margin:0}
@@ -338,14 +338,14 @@ function topupPreview(m, amount){
   else if (o.change === 'keep') tierMsg = `<div class="pos">已達續用門檻，保留 ${esc(o.tier)}（效期不變）</div>`;
   else if (o.change === 'downgrade') tierMsg = `<div class="neg"><b>⚠ 未達 ${esc(m.tier)} 續用門檻 ${fmt(S.tiers[cur].keepMin)} 元，儲值後將變為「${esc(o.tier)}」</b>${cp}</div>`;
   else {
-    const next = S.tiers.find((t,i) => i > cur && t.threshold > 0);
+    const next = S.tiers.find((t,i) => i > cur && t.threshold > 0 && t.threshold < 9999999);
     if (next) tierMsg = `<div class="hint">單次儲值 ${fmt(next.threshold)} 可升級為 ${esc(next.name)}</div>`;
   }
   return `<div class="sum"><span>儲值後餘額</span><b>${fmt(m.balance + amount)}</b></div>${tierMsg}`;
 }
 function openTopup(){
   const m = S.member;
-  const quick = Array.from(new Set([500, 1000].concat(S.tiers.filter(t => t.threshold > 0).flatMap(t => [t.keepMin, t.threshold])).filter(x => x > 0))).sort((a,b)=>a-b);
+  const quick = Array.from(new Set([500, 1000].concat(S.tiers.filter(t => t.threshold > 0 && t.threshold < 9999999).flatMap(t => [t.keepMin, t.threshold])).filter(x => x > 0))).sort((a,b)=>a-b);
   const el = modal(`<h2>儲值</h2>${whoLine(m)}
     <label>儲值金額（1 元 = 1 點）</label><input id="tAmt" inputmode="numeric" placeholder="0">
     <div class="quick">${quick.map(q => `<button class="btn sm ghost" data-q="${q}">${fmt(q)}</button>`).join('')}</div>
