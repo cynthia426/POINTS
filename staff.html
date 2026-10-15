@@ -450,9 +450,11 @@ function openWaiting(m, req){
   const myPoll = ++pollId;
   const el = modal(`<h2>等待玩家確認</h2>${whoLine(m)}
     <div class="sum"><span>本次扣點</span><b>${fmt(req.total)}</b></div>
-    ${req.pushed
-      ? `<p>已傳送 LINE 通知，請玩家點開訊息輸入 PIN。</p>`
-      : `<p class="err">LINE 通知未送達（${esc(req.pushError)}）。<br>請玩家從官方帳號選單開啟「我的點數」，畫面上方就會看到這筆申請。</p>`}
+    ${!req.pushOn
+      ? `<p><b>請玩家打開 LINE 官方帳號 →「我的點數」</b>，畫面上會出現這筆扣點，輸入 PIN 確認。</p><p class="hint">已經開著頁面的話，幾秒內會自動跳出。</p>`
+      : req.pushed
+        ? `<p>已傳送 LINE 通知，請玩家點開訊息輸入 PIN。</p>`
+        : `<p class="err">LINE 通知未送達（${esc(req.pushError)}）。<br>請玩家從官方帳號選單開啟「我的點數」，畫面上就會看到這筆申請。</p>`}
     <p class="hint" id="wStatus">等待中…</p>
     <div class="foot"><button class="btn ghost" id="wCancel">取消這筆申請</button></div>`, { locked: true });
   const stop = () => { if (pollId === myPoll) pollId++; };
