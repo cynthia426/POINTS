@@ -167,13 +167,12 @@ function render(d){
   const OPEN = t => t.threshold > 0 && t.threshold < 9999999; // 門檻 9999999 = 尚未開放
   const next = d.tiers.find((t,i) => i > d.tierIndex && OPEN(t));
   let nextMsg = '';
-  if (next) nextMsg = `單次儲值滿 ${fmt(next.threshold)} 元可升級為「${esc(next.name)}」。`;
+  if (next) nextMsg = `單次儲值滿 ${fmt(next.threshold)} 元可升級為「${esc(next.name)}」會員。`;
   const curT = d.tiers[d.tierIndex];
   if (m.expiry && curT && OPEN(curT)) nextMsg += `${nextMsg ? '<br>' : ''}再次儲值至少 ${fmt(curT.keepMin)} 元可續用${esc(curT.name)}優惠；單次儲值 ${fmt(curT.threshold)} 元效期重新計算一年。`;
   view.innerHTML = `
     ${d.done ? `<div class="done">已扣 ${fmt(d.done.total)} 點，剩餘 ${fmt(d.done.balance)} 點</div>` : ''}
     <div class="mcard t${ti}" role="img" aria-label="${esc(m.tier)}會員卡">
-      ${ti === 0 ? `<div class="tier0 gold">${esc(m.tier)}</div>` : ''}
       <div class="body">
         <div class="lbl">可用點數</div>
         <div class="bal"><span class="num gold">${fmt(m.balance)}</span><span class="unit">點</span></div>
