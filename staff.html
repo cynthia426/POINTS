@@ -66,6 +66,10 @@ label{display:block;font-size:13px;color:var(--muted);margin:12px 0 4px}
 .tx .pts{font-weight:700;font-variant-numeric:tabular-nums}
 .pos{color:var(--ok)}.neg{color:var(--bad)}
 .tx.voided{opacity:.5}.tx.voided .pts{text-decoration:line-through}
+.bday{display:flex;gap:10px;align-items:flex-start;padding:12px;margin:10px 0 6px;border:1px solid #e6c98f;background:#fbf4e4;border-radius:10px;cursor:pointer;color:var(--ink);font-size:14px}
+.bday input{width:22px;height:22px;min-height:0;margin:0;flex:none;accent-color:var(--accent)}
+.bday .hint{display:block;margin-top:2px}
+.bday.off{opacity:.55;cursor:not-allowed}
 .modal-bg{position:fixed;inset:0;background:rgba(20,18,15,.5);z-index:20;display:flex;align-items:flex-end;justify-content:center}
 .modal{background:var(--bg);width:100%;max-width:640px;max-height:92vh;overflow:auto;border-radius:18px 18px 0 0;padding:20px 16px calc(20px + env(safe-area-inset-bottom))}
 @media(min-width:700px){.modal-bg{align-items:center}.modal{border-radius:18px}}
@@ -215,13 +219,13 @@ async function enterApp(){
   await loadCatalog();
   $('#q').focus();
 }
-async function loadCatalog(){
-  const r = await api('catalog'); S.tiers = r.tiers; S.items = r.items; S.couponName = r.couponName; S.couponValue = r.couponValue;
+async function loadCatalog(fresh){
+  const r = await api('catalog', fresh ? { fresh: true } : {}); S.tiers = r.tiers; S.items = r.items; S.couponName = r.couponName; S.couponValue = r.couponValue; S.bdayValue = r.bdayValue;
 }
 $('#lgBtn').onclick = doLogin;
 $('#lgPin').addEventListener('keydown', e => { if (e.key==='Enter') doLogin(); });
 $('#logoutBtn').onclick = async () => { try { await api('logout'); } catch(e){} logoutLocal(); };
-$('#reloadBtn').onclick = () => busy($('#counterView'), async () => { await loadCatalog(); toast('價目表已更新'); if (S.member) renderMember(); });
+$('#reloadBtn').onclick = () => busy($('#counterView'), async () => { await loadCatalog(true); toast('價目表已更新'); if (S.member) renderMember(); });
 
 /* ---------- 分頁 ---------- */
 $('#tabs').onclick = e => {
@@ -271,6 +275,7 @@ function renderMember(){
       <dt>手機</dt><dd>${esc(fmtPhone(m.phone))}</dd>
       <dt>等級到期</dt><dd>${m.expiry ? esc(m.expiry) : '—'}</dd>
       <dt>${esc(S.couponName||'折抵券')}</dt><dd>${m.coupons||0} 張</dd>
+      <dt>生日優惠</dt><dd>${m.bdayUsed ? '今年已使用（' + esc(m.bdayUsed) + '）' : '今年未使用'}</dd>
       <dt>LINE</dt><dd>${m.bound ? '已綁定' : '<span class="neg">未綁定（無法扣點）</span>'}</dd>
       <dt>玩家 PIN</dt><dd>${m.pinLocked ? '<span class="neg">已鎖定</span>' : m.hasPin ? '已設定' : '未設定（首次扣點時玩家會被要求設定）'}</dd>
       ${m.note ? `<dt>備註</dt><dd>${esc(m.note)}</dd>` : ''}
@@ -378,13 +383,18 @@ function openDeduct(){
   const cats = {};
   S.items.forEach(it => (cats[it.category] = cats[it.category] || []).push(it));
   const el = modal(`<h2>扣點</h2>${whoLine(m)}
-    <div class="hint">價格依 ${esc(m.tier)} 計算</div>
+    <label class="bday ${m.bdayUsed ? 'off' : ''}">
+      <input type="checkbox" id="dBday" ${m.bdayUsed ? 'disabled' : ''}>
+      <span><b>生日優惠</b>：折 ${fmt(S.bdayValue)} 點，劇本改用原價計算（不套等級折扣）
+        <span class="hint">${m.bdayUsed ? `今年已使用（${esc(m.bdayUsed)}）` : '生日當月一次，請先核對證件'}</span></span>
+    </label>
+    <div class="hint" id="dPriceHint">價格依 ${esc(m.tier)} 計算</div>
     <input id="dSearch" placeholder="搜尋劇本名稱" autocomplete="off" style="margin-top:8px">
     <div id="dPicked" class="hint" style="margin-top:6px"></div>
     <div id="dList">
     ${S.items.length ? Object.keys(cats).map(c => `<div class="cat">${esc(c)}</div>` + cats[c].map(it => `
       <div class="item">
-        <div class="nm">${esc(it.name)}<div class="pr">${fmt(it.prices[m.tier])} 點</div></div>
+        <div class="nm">${esc(it.name)}<div class="pr" data-pr="${esc(it.code)}">${fmt(it.prices[m.tier])} 點</div></div>
         <div class="step"><button data-m="${esc(it.code)}">−</button><span id="q_${esc(it.code)}">0</span><button data-p="${esc(it.code)}">＋</button></div>
       </div>`).join('')).join('') : '<p class="hint">價目表沒有啟用的品項</p>'}
     </div>
@@ -401,9 +411,11 @@ function openDeduct(){
     <label>備註（選填）</label><input id="dNote">
     <div class="foot"><button class="btn ghost" data-close>取消</button><button class="btn dark" id="dOk" disabled>送出給玩家確認</button></div>`);
   const byCode = {}; S.items.forEach(it => byCode[it.code] = it);
-  let useC = 0;
-  const gross = () => Object.keys(qty).reduce((s,c) => s + qty[c] * byCode[c].prices[m.tier], 0) + (parseInt($('#dcPts').value.replace(/\D/g,''),10)||0);
-  const total = () => { const g = gross(); return g - Math.min(g, (S.couponValue||0) * useC); };
+  let useC = 0, bday = false;
+  const baseTier = S.tiers[0].name;
+  const priceOf = it => bday ? it.prices[baseTier] : it.prices[m.tier];
+  const gross = () => Object.keys(qty).reduce((s,c) => s + qty[c] * priceOf(byCode[c]), 0) + (parseInt($('#dcPts').value.replace(/\D/g,''),10)||0);
+  const total = () => { let g = gross(); if (bday) g -= Math.min(g, S.bdayValue || 0); return g - Math.min(g, (S.couponValue||0) * useC); };
   const upd = () => {
     const t = total(), after = m.balance - t;
     $('#dTotal').textContent = fmt(t);
@@ -421,6 +433,12 @@ function openDeduct(){
     upd();
   });
   $('#dcPts').oninput = upd;
+  $('#dBday').onchange = () => {
+    bday = $('#dBday').checked;
+    S.items.forEach(it => { const e = el.querySelector(`[data-pr="${CSS.escape(it.code)}"]`); if (e) e.textContent = fmt(priceOf(it)) + ' 點'; });
+    $('#dPriceHint').textContent = bday ? `生日優惠：劇本以原價計算，合計再折 ${fmt(S.bdayValue)} 點` : `價格依 ${m.tier} 計算`;
+    upd();
+  };
   $('#dSearch').oninput = () => {
     const q = $('#dSearch').value.trim().toLowerCase();
     el.querySelectorAll('#dList .item').forEach(row => { row.style.display = !q || row.querySelector('.nm').textContent.toLowerCase().includes(q) ? '' : 'none'; });
@@ -437,8 +455,9 @@ function openDeduct(){
     const cpts = parseInt($('#dcPts').value.replace(/\D/g,''),10) || 0;
     const clabel = $('#dcLabel').value.trim();
     if (cpts && !clabel) { toast('自訂扣點請填寫項目說明', true); return; }
+    if (bday && !confirm('確認已核對證件，本月為會員生日月份？')) return;
     busy(el, async () => {
-      const r = await api('requestDeduct', { memberId: m.id, items, custom: cpts ? { points: cpts, label: clabel } : null, coupons: useC, note: $('#dNote').value });
+      const r = await api('requestDeduct', { memberId: m.id, items, custom: cpts ? { points: cpts, label: clabel } : null, coupons: useC, birthday: bday, note: $('#dNote').value });
       openWaiting(m, r);
     });
   };

@@ -217,7 +217,7 @@ async function load(){
 }
 
 /* 頁面開著時自動檢查櫃檯送來的扣點申請（每 4 秒，最多 5 分鐘；有申請或正在輸入時暫停） */
-let watchTimer = null, watchUntil = 0, lastSig = '';
+let watchTimer = null, watchUntil = 0;
 function startWatch(){ watchUntil = Date.now() + 5 * 60 * 1000; if (!watchTimer) watchTimer = setTimeout(watchTick, 4000); }
 async function watchTick(){
   watchTimer = null;
@@ -225,9 +225,11 @@ async function watchTick(){
   const busyInput = document.querySelector('input:focus') || document.querySelector('.req');
   if (!busyInput && document.querySelector('.mcard')) {
     try {
-      const d = await api('me');
-      const sig = JSON.stringify([d.pending, d.member && d.member.balance]);
-      if (sig !== lastSig) { lastSig = sig; if ((d.pending||[]).length || d.done) { render(d); if (navigator.vibrate) navigator.vibrate(120); } }
+      const p = await api('poll');   // 輕量檢查，有申請才載入完整資料
+      if (p.pending) {
+        const d = await api('me');
+        if ((d.pending||[]).length) { render(d); if (navigator.vibrate) navigator.vibrate(120); }
+      }
     } catch(e) { /* 下次再試 */ }
   }
   watchTimer = setTimeout(watchTick, 4000);
